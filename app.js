@@ -1,8 +1,3 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, query, orderBy, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import firebaseConfig from './firebase-applet-config.json' with { type: 'json' };
-
 // ==========================================
 // إعدادات Google Drive وكلمة المرور
 // ==========================================
@@ -10,21 +5,10 @@ const GOOGLE_API_KEY = 'AIzaSyBqTvZ6eSO9Od-YOoXLdniRKHlIBbvI-rs';
 const GOOGLE_FOLDER_ID = '1MYDmYMfh7Ns_ez-956EXgRtwSs-0RvgS';
 const APP_PASSWORD = 'LoveYouForever-2026-Secret'; // كلمة المرور الخاصة بكما
 
-// ==========================================
-// إعدادات Firebase
-// ==========================================
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-
 // حالة تسجيل الدخول
-let isAuthenticated = false; // For the app password
-let isFirebaseAuthenticated = false; // For Google Auth
-let currentUser = null;
+let isAuthenticated = false;
 let allPhotos = [];
 let currentView = 'polaroid';
-let unsubscribes = []; // To keep track of Firestore listeners
 
 // عناصر واجهة المستخدم
 const photoGrid = document.getElementById('photo-grid');
@@ -34,8 +18,6 @@ const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
 const refreshBtn = document.getElementById('refresh-btn');
 const viewBtns = document.querySelectorAll('.view-btn');
-const authBtn = document.getElementById('auth-btn');
-const authText = document.getElementById('auth-text');
 
 // عناصر النافذة المنبثقة (Modal)
 const imageModal = document.getElementById('image-modal');
@@ -100,165 +82,8 @@ async function fetchPhotosFromDrive() {
     }
 }
 
-// ==========================================
-// وظائف التفاعل والتعليقات (Firebase)
-// ==========================================
-function createInteractionUI(photoId) {
-    const container = document.createElement('div');
-    container.className = 'w-full mt-4 flex flex-col gap-3 border-t border-rose-100 pt-3';
-    
-    // Reactions Bar
-    const reactionsBar = document.createElement('div');
-    reactionsBar.className = 'flex items-center justify-between';
-    
-    const emojis = [
-        { type: 'like', icon: '👍' },
-        { type: 'love', icon: '❤️' },
-        { type: 'haha', icon: '😂' },
-        { type: 'wow', icon: '😮' },
-        { type: 'sad', icon: '😢' },
-        { type: 'angry', icon: '😡' }
-    ];
-    
-    const emojiContainer = document.createElement('div');
-    emojiContainer.className = 'flex gap-2';
-    
-    emojis.forEach(emoji => {
-        const btn = document.createElement('button');
-        btn.innerHTML = emoji.icon;
-        btn.className = 'text-xl hover:scale-125 transition-transform duration-200 grayscale hover:grayscale-0 opacity-50 hover:opacity-100';
-        btn.onclick = async (e) => {
-            e.stopPropagation(); // Prevent opening modal
-            if (!isFirebaseAuthenticated) {
-                alert('يرجى تسجيل الدخول أولاً للتفاعل!');
-                return;
-            }
-            try {
-                const reactionRef = doc(db, 'photos', photoId, 'reactions', currentUser.uid);
-                await setDoc(reactionRef, {
-                    type: emoji.type,
-                    timestamp: serverTimestamp()
-                });
-            } catch (error) {
-                console.error("Error adding reaction:", error);
-            }
-        };
-        emojiContainer.appendChild(btn);
-    });
-    
-    const reactionsCount = document.createElement('div');
-    reactionsCount.className = 'text-sm text-gray-500 font-medium flex items-center gap-1';
-    reactionsCount.innerHTML = '<span class="reaction-total">0</span> تفاعل';
-    
-    reactionsBar.appendChild(emojiContainer);
-    reactionsBar.appendChild(reactionsCount);
-    
-    // Comments Section
-    const commentsSection = document.createElement('div');
-    commentsSection.className = 'flex flex-col gap-2';
-    
-    const commentsList = document.createElement('div');
-    commentsList.className = 'flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 text-sm text-gray-700';
-    
-    const commentInputContainer = document.createElement('div');
-    commentInputContainer.className = 'flex gap-2 mt-1';
-    
-    const commentInput = document.createElement('input');
-    commentInput.type = 'text';
-    commentInput.placeholder = 'اكتب تعليقاً...';
-    commentInput.className = 'flex-1 bg-rose-50 border border-rose-100 rounded-full px-4 py-1.5 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200';
-    commentInput.onclick = (e) => e.stopPropagation();
-    
-    const commentSubmit = document.createElement('button');
-    commentSubmit.innerHTML = '<i data-lucide="send" width="16" height="16"></i>';
-    commentSubmit.className = 'bg-pink-400 text-white p-2 rounded-full hover:bg-pink-500 transition-colors flex items-center justify-center';
-    commentSubmit.onclick = async (e) => {
-        e.stopPropagation();
-        if (!isFirebaseAuthenticated) {
-            alert('يرجى تسجيل الدخول أولاً للتعليق!');
-            return;
-        }
-        const text = commentInput.value.trim();
-        if (!text) return;
-        
-        try {
-            commentInput.value = '';
-            await addDoc(collection(db, 'photos', photoId, 'comments'), {
-                userId: currentUser.uid,
-                userName: currentUser.displayName || 'مستخدم',
-                userPhoto: currentUser.photoURL || '',
-                text: text,
-                timestamp: serverTimestamp()
-            });
-        } catch (error) {
-            console.error("Error adding comment:", error);
-        }
-    };
-    
-    commentInputContainer.appendChild(commentInput);
-    commentInputContainer.appendChild(commentSubmit);
-    
-    commentsSection.appendChild(commentsList);
-    commentsSection.appendChild(commentInputContainer);
-    
-    container.appendChild(reactionsBar);
-    container.appendChild(commentsSection);
-    
-    // Set up real-time listeners
-    const unsubscribeReactions = onSnapshot(collection(db, 'photos', photoId, 'reactions'), (snapshot) => {
-        let total = 0;
-        const userReaction = snapshot.docs.find(doc => doc.id === currentUser?.uid);
-        
-        // Reset all buttons
-        Array.from(emojiContainer.children).forEach(btn => {
-            btn.classList.add('grayscale', 'opacity-50');
-            btn.classList.remove('grayscale-0', 'opacity-100', 'scale-125', 'bg-pink-100', 'rounded-full');
-        });
-        
-        snapshot.forEach(doc => {
-            total++;
-            if (currentUser && doc.id === currentUser.uid) {
-                const type = doc.data().type;
-                const btnIndex = emojis.findIndex(e => e.type === type);
-                if (btnIndex !== -1) {
-                    const btn = emojiContainer.children[btnIndex];
-                    btn.classList.remove('grayscale', 'opacity-50');
-                    btn.classList.add('grayscale-0', 'opacity-100', 'bg-pink-100', 'rounded-full');
-                }
-            }
-        });
-        reactionsCount.innerHTML = `<span class="reaction-total">${total}</span> تفاعل`;
-    });
-    
-    const unsubscribeComments = onSnapshot(query(collection(db, 'photos', photoId, 'comments'), orderBy('timestamp', 'asc')), (snapshot) => {
-        commentsList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const commentEl = document.createElement('div');
-            commentEl.className = 'flex items-start gap-2 bg-gray-50 p-2 rounded-xl';
-            commentEl.innerHTML = `
-                <img src="${data.userPhoto || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + data.userName}" class="w-6 h-6 rounded-full object-cover" />
-                <div class="flex flex-col">
-                    <span class="font-bold text-xs text-gray-800">${data.userName}</span>
-                    <span class="text-gray-600 text-sm">${data.text}</span>
-                </div>
-            `;
-            commentsList.appendChild(commentEl);
-        });
-        commentsList.scrollTop = commentsList.scrollHeight;
-    });
-    
-    unsubscribes.push(unsubscribeReactions, unsubscribeComments);
-    
-    return container;
-}
-
 // عرض الصور في الموقع
 function renderPhotos() {
-    // Clear previous listeners
-    unsubscribes.forEach(unsub => unsub());
-    unsubscribes = [];
-
     if (!allPhotos || allPhotos.length === 0) {
         emptyState.classList.remove('hidden');
         photoGrid.classList.add('hidden');
@@ -270,13 +95,19 @@ function renderPhotos() {
     photoGrid.classList.remove('hidden');
     photoGrid.innerHTML = '';
     
+    // التحقق مما إذا كان الجهاز هاتفاً
+    const isMobile = window.innerWidth < 640;
+    const effectiveView = isMobile ? 'insta' : currentView;
+    
     // إعداد شكل الشبكة بناءً على العرض المختار
-    if (currentView === 'polaroid') {
+    if (effectiveView === 'polaroid') {
         photoGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8';
-    } else if (currentView === 'grid') {
+    } else if (effectiveView === 'grid') {
         photoGrid.className = 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3';
-    } else if (currentView === 'story') {
+    } else if (effectiveView === 'story') {
         photoGrid.className = 'flex flex-col items-center gap-8 sm:gap-12 max-w-2xl mx-auto w-full';
+    } else if (effectiveView === 'insta') {
+        photoGrid.className = 'flex flex-col gap-6 w-full max-w-md mx-auto';
     }
 
     allPhotos.forEach(file => {
@@ -290,12 +121,15 @@ function renderPhotos() {
         // رابط التحميل المباشر للصورة الأصلية
         const downloadUrl = file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`;
         
+        // استرجاع العنوان المحفوظ من التخزين المحلي
+        const savedTitle = localStorage.getItem('photo_title_' + file.id) || '';
+        
         const card = document.createElement('div');
         
         // عند الضغط على الصورة، تفتح النافذة المنبثقة
         card.onclick = () => openModal(imageUrl, downloadUrl);
 
-        if (currentView === 'polaroid') {
+        if (effectiveView === 'polaroid') {
             const rotation = Math.random() * 6 - 3;
             card.className = 'bg-white p-3 sm:p-4 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col h-full';
             card.style.transform = `rotate(${rotation}deg)`;
@@ -303,39 +137,105 @@ function renderPhotos() {
                 <div class="w-full aspect-square overflow-hidden bg-pink-50 mb-3 sm:mb-4 rounded-2xl shrink-0">
                     <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-                <div class="w-full text-center px-2 min-h-[1.5rem] flex items-center justify-center shrink-0">
-                    <i data-lucide="heart" class="text-pink-300 fill-pink-100" width="16" height="16"></i>
+                <div class="w-full text-center px-2 pb-2 mt-auto">
+                    <div class="editable-title outline-none cursor-text text-sm font-medium text-gray-700 border-b border-transparent hover:border-pink-300 focus:border-pink-400 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
-                <div class="mt-auto w-full interaction-container" onclick="event.stopPropagation()"></div>
             `;
-            card.querySelector('.interaction-container').appendChild(createInteractionUI(file.id));
-        } else if (currentView === 'grid') {
+        } else if (effectiveView === 'grid') {
             card.className = 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group overflow-hidden aspect-square relative';
             card.style.transform = 'none';
             card.innerHTML = `
                 <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div class="editable-title outline-none cursor-text text-sm font-medium text-white border-b border-transparent hover:border-white/50 focus:border-white transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-white/70" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
+                </div>
             `;
-            // No interaction UI for grid view to keep it clean, maybe just a like count overlay?
-            // Let's skip it for grid view to keep it simple and clean.
-        } else if (currentView === 'story') {
+        } else if (effectiveView === 'story') {
             card.className = 'bg-white p-4 sm:p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group w-full';
             card.style.transform = 'none';
             card.innerHTML = `
                 <div class="w-full h-[50vh] sm:h-[60vh] overflow-hidden bg-pink-50 rounded-2xl mb-4">
                     <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-                <div class="w-full flex justify-center mb-2">
-                    <i data-lucide="heart" class="text-rose-400 fill-rose-200" width="24" height="24"></i>
+                <div class="w-full text-center px-4">
+                    <div class="editable-title outline-none cursor-text text-lg font-medium text-gray-800 border-b border-transparent hover:border-pink-300 focus:border-pink-400 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
-                <div class="w-full interaction-container" onclick="event.stopPropagation()"></div>
             `;
-            card.querySelector('.interaction-container').appendChild(createInteractionUI(file.id));
+        } else if (effectiveView === 'insta') {
+            card.className = 'bg-white border border-rose-100 rounded-2xl overflow-hidden flex flex-col w-full shadow-sm';
+            card.style.transform = 'none';
+            card.innerHTML = `
+                <div class="p-3 flex items-center gap-3 border-b border-rose-50">
+                    <div class="w-8 h-8 bg-gradient-to-tr from-pink-400 to-rose-500 rounded-full p-[2px]">
+                        <div class="w-full h-full bg-white rounded-full border border-white overflow-hidden">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=doudou" class="w-full h-full object-cover" />
+                        </div>
+                    </div>
+                    <span class="font-bold text-sm text-gray-800">Our Memories</span>
+                </div>
+                <div class="w-full bg-gray-50">
+                    <img src="${imageUrl}" alt="${caption}" class="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
+                </div>
+                <div class="p-4 flex flex-col gap-2">
+                    <div class="text-sm text-gray-800">
+                        <span class="font-bold mr-1">Our Memories</span>
+                        <span class="editable-title outline-none cursor-text border-b border-dashed border-gray-300 hover:border-pink-400 focus:border-pink-500 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</span>
+                    </div>
+                </div>
+            `;
         }
         
         photoGrid.appendChild(card);
     });
     
+    // تفعيل حفظ العناوين
+    setupEditableTitles();
+    
     lucide.createIcons();
+}
+
+function setupEditableTitles() {
+    document.querySelectorAll('.editable-title').forEach(el => {
+        // منع فتح الصورة عند الضغط على العنوان
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // تقييد عدد الأحرف
+        el.addEventListener('keydown', (e) => {
+            const maxLength = 60;
+            const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Tab'];
+            
+            if (el.innerText.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+            
+            // عند الضغط على Enter، قم بإزالة التركيز (حفظ)
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el.blur();
+            }
+        });
+
+        // حفظ عند الانتهاء من التعديل
+        el.addEventListener('blur', (e) => {
+            const id = el.getAttribute('data-id');
+            const text = el.innerText.trim();
+            if (text) {
+                localStorage.setItem('photo_title_' + id, text);
+            } else {
+                localStorage.removeItem('photo_title_' + id);
+            }
+        });
+        
+        // منع اللصق بنصوص طويلة أو تنسيقات
+        el.addEventListener('paste', (e) => {
+            e.preventDefault();
+            let text = (e.originalEvent || e).clipboardData.getData('text/plain');
+            text = text.substring(0, 60); // قص النص إذا كان طويلاً
+            document.execCommand('insertText', false, text);
+        });
+    });
 }
 
 // ==========================================
@@ -383,42 +283,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ==========================================
-// وظائف Firebase Auth
-// ==========================================
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        isFirebaseAuthenticated = true;
-        currentUser = user;
-        authText.textContent = 'تسجيل الخروج';
-        authBtn.classList.remove('hidden');
-        // Update UI to show reactions/comments if needed
-    } else {
-        isFirebaseAuthenticated = false;
-        currentUser = null;
-        authText.textContent = 'تسجيل الدخول للتفاعل';
-        authBtn.classList.remove('hidden');
-    }
-});
-
-authBtn.addEventListener('click', async () => {
-    if (isFirebaseAuthenticated) {
-        await signOut(auth);
-    } else {
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error("Auth error:", error);
-            if (error.code === 'auth/popup-closed-by-user') {
-                // المستخدم أغلق النافذة المنبثقة، لا داعي لإظهار خطأ مزعج
-                console.log("تم إلغاء تسجيل الدخول من قبل المستخدم.");
-            } else {
-                showError("حدث خطأ أثناء تسجيل الدخول: " + error.message);
-            }
-        }
-    }
-});
-
-// ==========================================
 // وظائف تغيير شكل العرض (View Switcher)
 // ==========================================
 viewBtns.forEach(btn => {
@@ -438,6 +302,18 @@ viewBtns.forEach(btn => {
             renderPhotos();
         }
     });
+});
+
+// تحديث العرض عند تغيير حجم الشاشة (للهواتف)
+let lastIsMobile = window.innerWidth < 640;
+window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth < 640;
+    if (isMobile !== lastIsMobile) {
+        lastIsMobile = isMobile;
+        if (allPhotos.length > 0) {
+            renderPhotos();
+        }
+    }
 });
 
 // ==========================================
