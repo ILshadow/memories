@@ -138,7 +138,7 @@ function renderPhotos() {
                     <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
                 <div class="w-full text-center px-2 pb-2 mt-auto">
-                    <div class="editable-title outline-none cursor-text text-sm font-medium text-gray-700 border-b border-transparent hover:border-pink-300 focus:border-pink-400 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
+                    <div class="editable-title outline-none cursor-text text-xl text-gray-700 font-['Dancing_Script'] tracking-wide border-b border-transparent hover:border-rose-200 focus:border-rose-300 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-300 empty:before:italic" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
             `;
         } else if (effectiveView === 'grid') {
@@ -146,41 +146,30 @@ function renderPhotos() {
             card.style.transform = 'none';
             card.innerHTML = `
                 <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div class="editable-title outline-none cursor-text text-sm font-medium text-white border-b border-transparent hover:border-white/50 focus:border-white transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-white/70" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center">
+                    <div class="editable-title outline-none cursor-text text-xl text-white font-['Dancing_Script'] tracking-wide border-b border-transparent hover:border-white/50 focus:border-white transition-colors text-center empty:before:content-['أضف_عنواناً...'] empty:before:text-white/70 empty:before:italic" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
             `;
         } else if (effectiveView === 'story') {
             card.className = 'bg-white p-4 sm:p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group w-full';
             card.style.transform = 'none';
             card.innerHTML = `
-                <div class="w-full h-[50vh] sm:h-[60vh] overflow-hidden bg-pink-50 rounded-2xl mb-4">
+                <div class="w-full h-[50vh] sm:h-[60vh] overflow-hidden bg-pink-50 rounded-2xl mb-5">
                     <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
                 <div class="w-full text-center px-4">
-                    <div class="editable-title outline-none cursor-text text-lg font-medium text-gray-800 border-b border-transparent hover:border-pink-300 focus:border-pink-400 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
+                    <div class="editable-title outline-none cursor-text text-3xl text-gray-800 font-['Dancing_Script'] tracking-wide border-b border-transparent hover:border-rose-200 focus:border-rose-300 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-300 empty:before:italic" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
             `;
         } else if (effectiveView === 'insta') {
-            card.className = 'bg-white border border-rose-100 rounded-2xl overflow-hidden flex flex-col w-full shadow-sm';
+            card.className = 'bg-white border border-rose-100 rounded-2xl flex flex-col w-full shadow-md p-3';
             card.style.transform = 'none';
             card.innerHTML = `
-                <div class="p-3 flex items-center gap-3 border-b border-rose-50">
-                    <div class="w-8 h-8 bg-gradient-to-tr from-pink-400 to-rose-500 rounded-full p-[2px]">
-                        <div class="w-full h-full bg-white rounded-full border border-white overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=doudou" class="w-full h-full object-cover" />
-                        </div>
-                    </div>
-                    <span class="font-bold text-sm text-gray-800">Our Memories</span>
+                <div class="w-full rounded-xl overflow-hidden border border-rose-100 shadow-sm bg-pink-50/30">
+                    <img src="${imageUrl}" alt="${caption}" class="w-full h-auto max-h-[60vh] object-cover" loading="lazy" />
                 </div>
-                <div class="w-full bg-gray-50">
-                    <img src="${imageUrl}" alt="${caption}" class="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
-                </div>
-                <div class="p-4 flex flex-col gap-2">
-                    <div class="text-sm text-gray-800">
-                        <span class="font-bold mr-1">Our Memories</span>
-                        <span class="editable-title outline-none cursor-text border-b border-dashed border-gray-300 hover:border-pink-400 focus:border-pink-500 transition-colors empty:before:content-['أضف_عنواناً...'] empty:before:text-gray-400" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</span>
-                    </div>
+                <div class="pt-3 pb-1 px-2 flex flex-col items-center justify-center">
+                    <div class="editable-title outline-none cursor-text text-xl text-gray-700 font-['Dancing_Script'] tracking-wide border-b border-transparent hover:border-rose-200 focus:border-rose-300 transition-colors text-center w-full empty:before:content-['أضف_عنواناً_جميلاً...'] empty:before:text-gray-300 empty:before:italic" data-id="${file.id}" contenteditable="true" spellcheck="false">${savedTitle}</div>
                 </div>
             `;
         }
