@@ -46,32 +46,34 @@ lucide.createIcons();
 function getGitHubToken() {
     let token = localStorage.getItem('github_pat');
     if (!token) {
-        token = prompt('أدخل رمز الوصول الخاص بـ GitHub (Personal Access Token) للتمكن من رفع وتعديل الصور:\n\nملاحظة: الزوار لن يطلب منهم هذا الرمز، هو فقط لك كمدير للموقع.');
+        token = prompt('أدخل رمز الوصول الخاص بـ GitHub (Personal Access Token):\n\nإذا كنت تواجه مشاكل، تأكد أن الرمز يبدأ بـ ghp_ أو github_pat_');
         if (token) {
+            token = token.trim();
             localStorage.setItem('github_pat', token);
         }
     }
     return token;
 }
 
-// دعم تشفير وفك تشفير النصوص العربية (Unicode) لـ Base64
-function b64EncodeUnicode(str) {
-    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-        return String.fromCharCode('0x' + p1);
-    }));
+// مسح الرمز إذا كان خاطئاً
+function resetGitHubToken() {
+    localStorage.removeItem('github_pat');
+    alert('تم مسح رمز الوصول (Token) المحفوظ. حاول رفع الصورة مرة أخرى لإدخال الرمز الجديد.');
 }
 
-function b64DecodeUnicode(str) {
-    return decodeURIComponent(atob(str).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
+// دعم تشفير وفك تشفير النصوص العربية (Unicode) لـ Base64 بطريقة آمنة للملفات الكبيرة
+function utf8_to_b64(str) {
+    return window.btoa(unescape(encodeURIComponent(str)));
+}
+
+function b64_to_utf8(str) {
+    return decodeURIComponent(escape(window.atob(str)));
 }
 
 // جلب البيانات من GitHub
 async function fetchPhotosFromGitHub() {
     showLoading("جاري تحميل الذكريات...");
     try {
-        // نستخدم API لجلب الملف
         const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${DATA_FILE_PATH}?ref=${GITHUB_BRANCH}`;
         const response = await fetch(url);
         
@@ -80,18 +82,23 @@ async function fetchPhotosFromGitHub() {
             photos = [];
             currentFileSha = null;
         } else if (!response.ok) {
-            throw new Error('فشل في جلب البيانات من GitHub');
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || 'فشل في جلب البيانات من GitHub');
         } else {
             const data = await response.json();
             currentFileSha = data.sha;
             // فك تشفير المحتوى
-            const contentStr = b64DecodeUnicode(data.content.replace(/\n/g, ''));
+            const contentStr = b64_to_utf8(data.content.replace(/\n/g, ''));
             photos = JSON.parse(contentStr);
         }
         renderPhotos();
     } catch (error) {
         console.error(error);
-        showError("حدث خطأ أثناء تحميل الصور من GitHub. تأكد من إعدادات المستودع.");
+        if (error.message.includes('Not Found')) {
+            showError("لم يتم العثور على المستودع. تأكد أن اسم المستودع (memories) صحيح وأنه ليس فارغاً تماماً (يجب أن يحتوي على ملف واحد على الأقل مثل README).");
+        } else {
+            showError("خطأ في التحميل: " + error.message);
+        }
     } finally {
         hideLoading();
     }
@@ -101,7 +108,7 @@ async function fetchPhotosFromGitHub() {
 async function savePhotosToGitHub(commitMessage = "تحديث الصور") {
     const token = getGitHubToken();
     if (!token) {
-        showError("لا يمكن الحفظ بدون رمز الوصول (Token).");
+        showError("لا يمكن الحفظ بدون رمز الوصول (Token). قم بتحديث الصفحة للمحاولة مجدداً.");
         return false;
     }
 
@@ -109,7 +116,7 @@ async function savePhotosToGitHub(commitMessage = "تحديث الصور") {
     try {
         const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${DATA_FILE_PATH}`;
         const contentStr = JSON.stringify(photos);
-        const encodedContent = b64EncodeUnicode(contentStr);
+        const encodedContent = utf8_to_b64(contentStr);
 
         const body = {
             message: commitMessage,
@@ -124,19 +131,26 @@ async function savePhotosToGitHub(commitMessage = "تحديث الصور") {
         const response = await fetch(url, {
             method: 'PUT',
             headers: {
-                'Authorization': `token ${token}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         });
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
             localStorage.removeItem('github_pat');
-            throw new Error('رمز الوصول (Token) غير صالح أو منتهي الصلاحية.');
+            throw new Error('رمز الوصول (Token) غير صالح أو لا يملك صلاحية (repo). تم مسح الرمز، حاول مجدداً.');
         }
 
         if (!response.ok) {
-            throw new Error('فشل في حفظ البيانات في GitHub');
+            const errData = await response.json().catch(() => ({}));
+            
+            // معالجة خطأ المستودع الفارغ
+            if (errData.message && errData.message.includes('branch')) {
+                throw new Error('يبدو أن المستودع فارغ تماماً. يرجى إنشاء ملف README.md في المستودع أولاً لإنشاء الفرع main.');
+            }
+            
+            throw new Error(`خطأ من GitHub: ${errData.message || response.statusText}`);
         }
 
         const data = await response.json();
@@ -145,7 +159,9 @@ async function savePhotosToGitHub(commitMessage = "تحديث الصور") {
         return true;
     } catch (error) {
         console.error(error);
-        showError(error.message);
+        showError(error.message + " (اضغط هنا لمسح الرمز السري وإعادة المحاولة)");
+        errorMessage.onclick = resetGitHubToken;
+        errorMessage.style.cursor = 'pointer';
         return false;
     } finally {
         hideLoading();
