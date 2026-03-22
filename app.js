@@ -1,9 +1,9 @@
 // ==========================================
-// إعدادات GitHub (يجب تغيير هذه القيم لتطابق حسابك)
+// إعدادات GitHub الخاصة بك
 // ==========================================
-const GITHUB_USERNAME = 'ILshadow'; // ضع اسم المستخدم الخاص بك هنا
-const GITHUB_REPO = 'memories';           // ضع اسم المستودع هنا
-const GITHUB_BRANCH = 'main';                   // اسم الفرع (غالباً main أو master)
+const GITHUB_USERNAME = 'ILshadow'; // اسم المستخدم الخاص بك
+const GITHUB_REPO = 'memories';     // اسم المستودع الخاص بك
+const GITHUB_BRANCH = 'main';       // اسم الفرع (غالباً main أو master)
 const DATA_FILE_PATH = 'data.json';             // اسم الملف الذي سيحفظ البيانات والصور
 
 // ==========================================
