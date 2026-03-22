@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Reaction": {
+      "title": "Reaction",
+      "description": "A user's reaction to a photo.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of reaction (e.g., like, love, haha, wow, sad, angry)",
+          "enum": ["like", "love", "haha", "wow", "sad", "angry"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the reaction was made"
+        }
+      },
+      "required": ["type", "timestamp"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A user's comment on a photo.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who commented"
+        },
+        "userName": {
+          "type": "string",
+          "description": "The display name of the user"
+        },
+        "userPhoto": {
+          "type": "string",
+          "description": "The photo URL of the user"
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the comment"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the comment was posted"
+        }
+      },
+      "required": ["userId", "userName", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/photos/{photoId}/reactions/{userId}": {
+      "schema": {
+        "$ref": "#/entities/Reaction"
+      },
+      "description": "Reactions to a specific photo, keyed by the user's UID."
+    },
+    "/photos/{photoId}/comments/{commentId}": {
+      "schema": {
+        "$ref": "#/entities/Comment"
+      },
+      "description": "Comments on a specific photo."
+    }
+  }
+}

@@ -105,6 +105,14 @@
 
         <!-- Controls Section -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 sm:mb-12">
+            <!-- Auth Button -->
+            <button id="auth-btn" class="cursor-pointer group relative flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all border border-rose-100 hidden">
+                <div class="w-10 h-10 bg-rose-50 group-hover:bg-sky-50 rounded-full flex items-center justify-center text-rose-400 group-hover:text-sky-400 transition-colors">
+                    <i data-lucide="log-in" class="transition-transform duration-500" width="20" height="20"></i>
+                </div>
+                <span id="auth-text" class="font-bold text-gray-700 group-hover:text-sky-600 transition-colors text-lg">تسجيل الدخول للتفاعل</span>
+            </button>
+
             <!-- Sync Button -->
             <button id="refresh-btn" class="cursor-pointer group relative flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all border border-rose-100">
                 <div class="w-10 h-10 bg-rose-50 group-hover:bg-sky-50 rounded-full flex items-center justify-center text-rose-400 group-hover:text-sky-400 transition-colors">
@@ -187,7 +195,7 @@
     </div>
 
     <!-- Application Logic -->
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
 
