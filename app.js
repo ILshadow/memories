@@ -1,10 +1,14 @@
 // ==========================================
-// إعدادات GitHub الخاصة بك
+// إعدادات التخزين
 // ==========================================
+// قم بتغيير هذه القيمة إلى true إذا أردت استخدام GitHub، أو false لاستخدام التخزين المحلي (في جهازك فقط)
+const USE_GITHUB = false; 
+
+// إعدادات GitHub الخاصة بك (تُستخدم فقط إذا كان USE_GITHUB = true)
 const GITHUB_USERNAME = 'ILshadow'; // اسم المستخدم الخاص بك
 const GITHUB_REPO = 'memories';     // اسم المستودع الخاص بك
 const GITHUB_BRANCH = 'main';       // اسم الفرع (غالباً main أو master)
-const DATA_FILE_PATH = 'data.json';             // اسم الملف الذي سيحفظ البيانات والصور
+const DATA_FILE_PATH = 'data.json'; // اسم الملف الذي سيحفظ البيانات والصور
 
 // ==========================================
 // المتغيرات الأساسية
@@ -37,6 +41,36 @@ const loadingText = document.getElementById('loading-text');
 
 // تهيئة الأيقونات
 lucide.createIcons();
+
+// ==========================================
+// دوال التخزين المحلي (LocalStorage) - تعمل دائماً وبدون إنترنت
+// ==========================================
+function loadFromLocalStorage() {
+    try {
+        const stored = localStorage.getItem('scrapbook_photos');
+        if (stored) {
+            photos = JSON.parse(stored);
+        } else {
+            photos = [];
+        }
+        renderPhotos();
+    } catch (e) {
+        console.error("Failed to load photos from local storage", e);
+        showError("حدث خطأ أثناء تحميل الصور من جهازك.");
+    }
+}
+
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem('scrapbook_photos', JSON.stringify(photos));
+        errorMessage.classList.add('hidden');
+        return true;
+    } catch (e) {
+        console.error("Storage full", e);
+        showError("عذراً، مساحة التخزين ممتلئة! لا يمكن حفظ المزيد من الصور في جهازك.");
+        return false;
+    }
+}
 
 // ==========================================
 // دوال التعامل مع GitHub API
@@ -169,6 +203,17 @@ async function savePhotosToGitHub(commitMessage = "تحديث الصور") {
 }
 
 // ==========================================
+// دالة الحفظ الموحدة (تقرر أين تحفظ بناءً على الإعدادات)
+// ==========================================
+async function savePhotos(message) {
+    if (USE_GITHUB) {
+        return await savePhotosToGitHub(message);
+    } else {
+        return saveToLocalStorage();
+    }
+}
+
+// ==========================================
 // دوال واجهة المستخدم والمنطق
 // ==========================================
 
@@ -283,7 +328,7 @@ window.startEdit = function(id) {
         if (photo && photo.caption !== newCaption) {
             photo.caption = newCaption;
             renderPhotos(); // تحديث الواجهة فوراً
-            await savePhotosToGitHub("تعديل تعليق الصورة"); // الحفظ في جيت هاب
+            await savePhotos("تعديل تعليق الصورة"); // الحفظ
         } else {
             renderPhotos();
         }
@@ -316,7 +361,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
         deleteModal.classList.add('hidden');
         deleteModal.classList.remove('flex');
         
-        await savePhotosToGitHub("حذف صورة"); // الحفظ في جيت هاب
+        await savePhotos("حذف صورة"); // الحفظ
         photoToDelete = null;
     }
 });
@@ -325,11 +370,13 @@ fileUpload.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // نطلب التوكن قبل البدء بمعالجة الصور لنتأكد من صلاحية الرفع
-    const token = getGitHubToken();
-    if (!token) {
-        e.target.value = '';
-        return;
+    // إذا كنا نستخدم جيت هاب، نطلب التوكن قبل البدء
+    if (USE_GITHUB) {
+        const token = getGitHubToken();
+        if (!token) {
+            e.target.value = '';
+            return;
+        }
     }
 
     showLoading("جاري معالجة الصور...");
@@ -354,9 +401,14 @@ fileUpload.addEventListener('change', async (e) => {
     renderPhotos(); // عرض الصور فوراً
     e.target.value = ''; 
     
-    // رفع التحديث إلى جيت هاب
-    await savePhotosToGitHub("إضافة صور جديدة");
+    // رفع التحديث
+    await savePhotos("إضافة صور جديدة");
+    hideLoading(); // إخفاء التحميل إذا كنا نستخدم التخزين المحلي
 });
 
-// بدء التطبيق بجلب البيانات من جيت هاب
-fetchPhotosFromGitHub();
+// بدء التطبيق
+if (USE_GITHUB) {
+    fetchPhotosFromGitHub();
+} else {
+    loadFromLocalStorage();
+}
