@@ -408,7 +408,12 @@ authBtn.addEventListener('click', async () => {
             await signInWithPopup(auth, provider);
         } catch (error) {
             console.error("Auth error:", error);
-            showError("حدث خطأ أثناء تسجيل الدخول: " + error.message);
+            if (error.code === 'auth/popup-closed-by-user') {
+                // المستخدم أغلق النافذة المنبثقة، لا داعي لإظهار خطأ مزعج
+                console.log("تم إلغاء تسجيل الدخول من قبل المستخدم.");
+            } else {
+                showError("حدث خطأ أثناء تسجيل الدخول: " + error.message);
+            }
         }
     }
 });
