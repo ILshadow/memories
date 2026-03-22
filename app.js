@@ -7,6 +7,8 @@ const APP_PASSWORD = 'LoveYouForever-2026-Secret'; // كلمة المرور ال
 
 // حالة تسجيل الدخول
 let isAuthenticated = false;
+let allPhotos = [];
+let currentView = 'polaroid';
 
 // عناصر واجهة المستخدم
 const photoGrid = document.getElementById('photo-grid');
@@ -15,6 +17,7 @@ const errorMessage = document.getElementById('error-message');
 const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
 const refreshBtn = document.getElementById('refresh-btn');
+const viewBtns = document.querySelectorAll('.view-btn');
 
 // عناصر النافذة المنبثقة (Modal)
 const imageModal = document.getElementById('image-modal');
@@ -69,7 +72,8 @@ async function fetchPhotosFromDrive() {
         }
 
         const data = await response.json();
-        renderPhotos(data.files);
+        allPhotos = data.files;
+        renderPhotos();
     } catch (error) {
         console.error(error);
         showError("خطأ: " + error.message);
@@ -79,8 +83,8 @@ async function fetchPhotosFromDrive() {
 }
 
 // عرض الصور في الموقع
-function renderPhotos(files) {
-    if (!files || files.length === 0) {
+function renderPhotos() {
+    if (!allPhotos || allPhotos.length === 0) {
         emptyState.classList.remove('hidden');
         photoGrid.classList.add('hidden');
         photoGrid.innerHTML = '';
@@ -90,8 +94,17 @@ function renderPhotos(files) {
     emptyState.classList.add('hidden');
     photoGrid.classList.remove('hidden');
     photoGrid.innerHTML = '';
+    
+    // إعداد شكل الشبكة بناءً على العرض المختار
+    if (currentView === 'polaroid') {
+        photoGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8';
+    } else if (currentView === 'grid') {
+        photoGrid.className = 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3';
+    } else if (currentView === 'story') {
+        photoGrid.className = 'flex flex-col items-center gap-8 sm:gap-12 max-w-2xl mx-auto w-full';
+    }
 
-    files.forEach(file => {
+    allPhotos.forEach(file => {
         // استخدام اسم الملف كتعليق للصورة (مع إزالة الامتداد مثل .jpg أو .png)
         const caption = file.name.replace(/\.[^/.]+$/, "");
         
@@ -102,24 +115,42 @@ function renderPhotos(files) {
         // رابط التحميل المباشر للصورة الأصلية
         const downloadUrl = file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`;
         
-        // ميلان عشوائي للصورة لتبدو كصور البولارويد الحقيقية
-        const rotation = Math.random() * 6 - 3;
-
         const card = document.createElement('div');
-        card.className = 'polaroid group flex flex-col items-center cursor-pointer';
-        card.style.transform = `rotate(${rotation}deg)`;
         
         // عند الضغط على الصورة، تفتح النافذة المنبثقة
         card.onclick = () => openModal(imageUrl, downloadUrl);
 
-        card.innerHTML = `
-            <div class="w-full aspect-square overflow-hidden bg-pink-50 mb-3 sm:mb-4 rounded-2xl">
-                <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            </div>
-            <div class="w-full text-center px-2 min-h-[2.5rem] flex items-center justify-center">
-                <p class="text-gray-700 font-medium text-sm sm:text-base">${caption}</p>
-            </div>
-        `;
+        if (currentView === 'polaroid') {
+            const rotation = Math.random() * 6 - 3;
+            card.className = 'bg-white p-3 sm:p-4 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group';
+            card.style.transform = `rotate(${rotation}deg)`;
+            card.innerHTML = `
+                <div class="w-full aspect-square overflow-hidden bg-pink-50 mb-3 sm:mb-4 rounded-2xl">
+                    <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </div>
+                <div class="w-full text-center px-2 min-h-[1.5rem] flex items-center justify-center">
+                    <i data-lucide="heart" class="text-pink-300 fill-pink-100" width="16" height="16"></i>
+                </div>
+            `;
+        } else if (currentView === 'grid') {
+            card.className = 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group overflow-hidden aspect-square';
+            card.style.transform = 'none';
+            card.innerHTML = `
+                <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+            `;
+        } else if (currentView === 'story') {
+            card.className = 'bg-white p-4 sm:p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group w-full';
+            card.style.transform = 'none';
+            card.innerHTML = `
+                <div class="w-full h-[50vh] sm:h-[60vh] overflow-hidden bg-pink-50 rounded-2xl mb-4">
+                    <img src="${imageUrl}" alt="${caption}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </div>
+                <div class="w-full flex justify-center">
+                    <i data-lucide="heart" class="text-rose-400 fill-rose-200" width="24" height="24"></i>
+                </div>
+            `;
+        }
+        
         photoGrid.appendChild(card);
     });
     
@@ -168,6 +199,28 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !imageModal.classList.contains('hidden')) {
         closeModal();
     }
+});
+
+// ==========================================
+// وظائف تغيير شكل العرض (View Switcher)
+// ==========================================
+viewBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // تحديث الأزرار
+        viewBtns.forEach(b => {
+            b.classList.remove('bg-pink-400', 'text-white', 'shadow-md', 'active');
+            b.classList.add('text-pink-400', 'hover:bg-pink-50');
+        });
+        btn.classList.remove('text-pink-400', 'hover:bg-pink-50');
+        btn.classList.add('bg-pink-400', 'text-white', 'shadow-md', 'active');
+        
+        currentView = btn.dataset.view;
+        
+        // إعادة رسم الصور بالشكل الجديد إذا كانت موجودة
+        if (allPhotos.length > 0) {
+            renderPhotos();
+        }
+    });
 });
 
 // ==========================================

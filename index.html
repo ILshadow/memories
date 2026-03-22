@@ -103,17 +103,28 @@
             </p>
         </header>
 
-        <!-- Sync Button -->
-        <div class="flex justify-center mb-10 sm:mb-12">
-            <button id="refresh-btn" class="cursor-pointer group relative flex items-center gap-3 bg-white px-6 sm:px-8 py-3 sm:py-4 rounded-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all border border-rose-100">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-rose-50 group-hover:bg-sky-50 rounded-full flex items-center justify-center text-rose-400 group-hover:text-sky-400 transition-colors">
-                    <i data-lucide="refresh-cw" class="group-hover:rotate-180 transition-transform duration-500"></i>
+        <!-- Controls Section -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 sm:mb-12">
+            <!-- Sync Button -->
+            <button id="refresh-btn" class="cursor-pointer group relative flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all border border-rose-100">
+                <div class="w-10 h-10 bg-rose-50 group-hover:bg-sky-50 rounded-full flex items-center justify-center text-rose-400 group-hover:text-sky-400 transition-colors">
+                    <i data-lucide="refresh-cw" class="group-hover:rotate-180 transition-transform duration-500" width="20" height="20"></i>
                 </div>
-                <div class="text-right">
-                    <span class="block text-gray-700 font-bold text-base sm:text-lg">تحديث الصور</span>
-                    <span class="block text-gray-400 text-xs sm:text-sm">جلب الجديد من Google Drive</span>
-                </div>
+                <span class="font-bold text-gray-700 group-hover:text-sky-600 transition-colors text-lg">تحديث الصور</span>
             </button>
+
+            <!-- View Switcher -->
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm border border-rose-100" dir="ltr">
+                <button class="view-btn active p-2.5 rounded-full bg-pink-400 text-white shadow-md transition-all" data-view="polaroid" title="شكل بولارويد">
+                    <i data-lucide="images" width="20" height="20"></i>
+                </button>
+                <button class="view-btn p-2.5 rounded-full text-pink-400 hover:bg-pink-50 transition-all" data-view="grid" title="شبكة حديثة">
+                    <i data-lucide="layout-grid" width="20" height="20"></i>
+                </button>
+                <button class="view-btn p-2.5 rounded-full text-pink-400 hover:bg-pink-50 transition-all" data-view="story" title="شكل قصة">
+                    <i data-lucide="rows-3" width="20" height="20"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Error Message -->
