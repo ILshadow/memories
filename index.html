@@ -101,16 +101,17 @@
             </p>
         </header>
 
-        <!-- Upload Button -->
+        <!-- Sync Button -->
         <div class="flex justify-center mb-12">
-            <label class="cursor-pointer group relative">
-                <div class="absolute -inset-1 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-200"></div>
-                <div class="relative px-8 py-4 bg-white rounded-full flex items-center gap-3 shadow-lg hover:shadow-xl transition-all transform group-hover:-translate-y-1">
-                    <i data-lucide="camera" class="text-rose-500" width="28" height="28"></i>
-                    <span class="text-xl font-bold text-gray-800">إضافة صورة جديدة</span>
+            <button id="refresh-btn" class="cursor-pointer group relative flex items-center gap-3 bg-white px-8 py-4 rounded-full shadow-sm hover:shadow-md transition-all border border-rose-100">
+                <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
+                    <i data-lucide="refresh-cw" class="group-hover:rotate-180 transition-transform duration-500"></i>
                 </div>
-                <input type="file" accept="image/*" multiple class="hidden" id="file-upload" />
-            </label>
+                <div class="text-right">
+                    <span class="block text-gray-800 font-bold text-lg">تحديث الصور</span>
+                    <span class="block text-gray-400 text-sm">جلب الجديد من Google Drive</span>
+                </div>
+            </button>
         </div>
 
         <!-- Error Message -->
@@ -128,20 +129,7 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-rose-100 transform transition-all">
-            <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500">
-                <i data-lucide="trash-2" width="32" height="32"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2 text-center">حذف الصورة؟</h3>
-            <p class="text-gray-500 text-center mb-8">هل أنت متأكد من حذف هذه الصورة؟ لا يمكن التراجع عن هذا الإجراء.</p>
-            <div class="flex gap-3 justify-center">
-                <button id="cancel-delete" class="flex-1 py-3 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors">إلغاء</button>
-                <button id="confirm-delete" class="flex-1 py-3 rounded-full bg-rose-500 text-white font-bold hover:bg-rose-600 transition-colors shadow-md shadow-rose-200">حذف</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden items-center justify-center flex-col gap-4">
